@@ -119,6 +119,75 @@ jobs:
           done
           iconutil -c icns assets/icon.iconset -o assets/icon.icns
 
+      - name: Check macOS notarization configuration
+        if: matrix.package-kind == 'macos'
+        env:
+          APPLE_DEVELOPER_ID_CERTIFICATE_BASE64: ${{ secrets.APPLE_DEVELOPER_ID_CERTIFICATE_BASE64 }}
+          APPLE_DEVELOPER_ID_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_CERTIFICATE_PASSWORD }}
+          APPLE_CODESIGN_IDENTITY: ${{ secrets.APPLE_CODESIGN_IDENTITY }}
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+        run: |
+          missing=()
+          for name in \
+            APPLE_DEVELOPER_ID_CERTIFICATE_BASE64 \
+            APPLE_DEVELOPER_ID_CERTIFICATE_PASSWORD \
+            APP_STORE_CONNECT_KEY_ID \
+            APP_STORE_CONNECT_ISSUER_ID \
+            APP_STORE_CONNECT_PRIVATE_KEY
+          do
+            if [ -z "${!name}" ]; then
+              missing+=("$name")
+            fi
+          done
+
+          if [ ${#missing[@]} -eq 0 ]; then
+            echo "MACOS_NOTARIZATION_ENABLED=true" >> "$GITHUB_ENV"
+            echo "macOS notarization is enabled for this build."
+          else
+            echo "MACOS_NOTARIZATION_ENABLED=false" >> "$GITHUB_ENV"
+            printf 'macOS notarization is disabled; missing secrets: %s\n' "${missing[*]}"
+          fi
+
+      - name: Import Apple Developer ID certificate
+        if: matrix.package-kind == 'macos' && env.MACOS_NOTARIZATION_ENABLED == 'true'
+        env:
+          APPLE_DEVELOPER_ID_CERTIFICATE_BASE64: ${{ secrets.APPLE_DEVELOPER_ID_CERTIFICATE_BASE64 }}
+          APPLE_DEVELOPER_ID_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_CERTIFICATE_PASSWORD }}
+          APPLE_CODESIGN_IDENTITY: ${{ secrets.APPLE_CODESIGN_IDENTITY }}
+        run: |
+          certificate_path="$RUNNER_TEMP/developer_id_application.p12"
+          keychain_path="$RUNNER_TEMP/flickr-album-downloader-signing.keychain-db"
+          keychain_password="$(openssl rand -hex 24)"
+
+          printf '%s' "$APPLE_DEVELOPER_ID_CERTIFICATE_BASE64" | base64 -D > "$certificate_path"
+          security create-keychain -p "$keychain_password" "$keychain_path"
+          security default-keychain -s "$keychain_path"
+          security set-keychain-settings -lut 21600 "$keychain_path"
+          security unlock-keychain -p "$keychain_password" "$keychain_path"
+          security import "$certificate_path" \
+            -k "$keychain_path" \
+            -P "$APPLE_DEVELOPER_ID_CERTIFICATE_PASSWORD" \
+            -T /usr/bin/codesign \
+            -T /usr/bin/security
+          security list-keychains -d user -s "$keychain_path" $(security list-keychains -d user | sed s/\"//g)
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$keychain_password" "$keychain_path"
+
+          if [ -z "$APPLE_CODESIGN_IDENTITY" ]; then
+            APPLE_CODESIGN_IDENTITY="$(security find-identity -v -p codesigning "$keychain_path" | awk -F '"' '/Developer ID Application/ { print $2; exit }')"
+          fi
+
+          if [ -z "$APPLE_CODESIGN_IDENTITY" ]; then
+            echo "No Developer ID Application signing identity was found." >&2
+            security find-identity -v -p codesigning "$keychain_path"
+            exit 1
+          fi
+
+          printf 'APPLE_CODESIGN_IDENTITY=%s\n' "$APPLE_CODESIGN_IDENTITY" >> "$GITHUB_ENV"
+          printf 'MACOS_SIGNING_KEYCHAIN=%s\n' "$keychain_path" >> "$GITHUB_ENV"
+          security find-identity -v -p codesigning "$keychain_path"
+
       - name: Build Windows executable
         if: matrix.package-kind == 'windows'
         shell: pwsh
@@ -139,7 +208,17 @@ jobs:
             flickr_album_downloader.py
           python tools/update_macos_info_plist.py "dist/Flickr Album Downloader.app/Contents/Info.plist"
           xattr -cr "dist/Flickr Album Downloader.app" || true
-          codesign --force --deep --sign - "dist/Flickr Album Downloader.app"
+          if [ "${MACOS_NOTARIZATION_ENABLED:-false}" = "true" ]; then
+            codesign --force --deep \
+              --options runtime \
+              --timestamp \
+              --entitlements packaging/macos/entitlements.plist \
+              --keychain "$MACOS_SIGNING_KEYCHAIN" \
+              --sign "$APPLE_CODESIGN_IDENTITY" \
+              "dist/Flickr Album Downloader.app"
+          else
+            codesign --force --deep --sign - "dist/Flickr Album Downloader.app"
+          fi
           codesign --verify --deep --strict "dist/Flickr Album Downloader.app"
 
       - name: Build Linux executable
@@ -176,7 +255,31 @@ jobs:
             -ov \
             -format UDZO \
             "dist/$asset_name"
-          codesign --force --sign - "dist/$asset_name" || true
+          if [ "${MACOS_NOTARIZATION_ENABLED:-false}" = "true" ]; then
+            codesign --force --timestamp --keychain "$MACOS_SIGNING_KEYCHAIN" --sign "$APPLE_CODESIGN_IDENTITY" "dist/$asset_name"
+          else
+            codesign --force --sign - "dist/$asset_name" || true
+          fi
+
+      - name: Notarize macOS DMG
+        if: matrix.package-kind == 'macos' && env.MACOS_NOTARIZATION_ENABLED == 'true'
+        env:
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+        run: |
+          asset_name="$APP_SLUG-$APP_VERSION-${{ matrix.release-suffix }}.dmg"
+          private_key_path="$RUNNER_TEMP/AuthKey_${APP_STORE_CONNECT_KEY_ID}.p8"
+          printf '%s' "$APP_STORE_CONNECT_PRIVATE_KEY" > "$private_key_path"
+
+          xcrun notarytool submit "dist/$asset_name" \
+            --key "$private_key_path" \
+            --key-id "$APP_STORE_CONNECT_KEY_ID" \
+            --issuer "$APP_STORE_CONNECT_ISSUER_ID" \
+            --wait
+          xcrun stapler staple "dist/$asset_name"
+          xcrun stapler validate "dist/$asset_name"
+          spctl -a -vvv -t open --context context:primary-signature "dist/$asset_name"
 
       - name: Package Linux AppImage
         if: matrix.package-kind == 'linux'
@@ -229,6 +332,12 @@ jobs:
         with:
           name: ${{ matrix.artifact }}
           path: dist/FlickrAlbumDownloader-*-${{ matrix.release-suffix }}.${{ matrix.asset-ext }}
+
+      - name: Clean up macOS signing keychain
+        if: always() && matrix.package-kind == 'macos' && env.MACOS_NOTARIZATION_ENABLED == 'true'
+        run: |
+          security delete-keychain "$MACOS_SIGNING_KEYCHAIN" || true
+          rm -f "$RUNNER_TEMP/developer_id_application.p12" "$RUNNER_TEMP"/AuthKey_*.p8
 
   release:
     name: Publish release assets

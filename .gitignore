@@ -11,3 +11,5 @@ downloads_full_test/
 *.zip.part
 *.log
 cookies*.txt
+*.p12
+AuthKey_*.p8

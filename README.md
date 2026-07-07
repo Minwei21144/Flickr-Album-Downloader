@@ -124,7 +124,7 @@ Run the `Build desktop apps` workflow manually from GitHub Actions to create bui
 
 Windows and Linux arm64 runners are marked as GitHub public preview runners, so they are allowed to fail without blocking the stable x64/x86 builds.
 
-macOS builds are packaged as drag-to-Applications DMG images and ad-hoc signed. They are not Apple-notarized unless a Developer ID certificate is provided, so some macOS installs may still require right-clicking the app and choosing Open the first time.
+macOS builds are packaged as drag-to-Applications DMG images. By default they are ad-hoc signed for testing. If Apple Developer ID and App Store Connect API secrets are configured, GitHub Actions signs the `.app`, signs the `.dmg`, submits the DMG for Apple notarization, staples the notarization ticket, and verifies the result. See [macOS notarization setup](docs/macos-notarization.md).
 
 Linux builds are packaged as AppImage files. Some Linux desktop environments require marking a downloaded AppImage as executable before the first launch.
 
