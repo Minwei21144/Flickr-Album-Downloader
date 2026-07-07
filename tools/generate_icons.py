@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import io
+import struct
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFilter
@@ -118,13 +120,123 @@ def make_icon(size: int = 1024) -> Image.Image:
     return image
 
 
+def make_small_icon(size: int) -> Image.Image:
+    scale = size / 256
+    image = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(image)
+
+    draw.rounded_rectangle(
+        [round(14 * scale), round(14 * scale), round(242 * scale), round(242 * scale)],
+        radius=round(54 * scale),
+        fill=(27, 143, 205, 255),
+    )
+    draw.rounded_rectangle(
+        [round(24 * scale), round(24 * scale), round(232 * scale), round(232 * scale)],
+        radius=round(46 * scale),
+        outline=(85, 205, 232, 255),
+        width=max(1, round(7 * scale)),
+    )
+
+    # Use simple, high-contrast geometry for taskbar/titlebar sizes.
+    draw.rounded_rectangle(
+        [round(54 * scale), round(64 * scale), round(156 * scale), round(168 * scale)],
+        radius=round(17 * scale),
+        outline=(213, 245, 255, 255),
+        width=max(2, round(12 * scale)),
+    )
+    draw.rounded_rectangle(
+        [round(92 * scale), round(86 * scale), round(202 * scale), round(192 * scale)],
+        radius=round(17 * scale),
+        outline=(255, 255, 255, 255),
+        width=max(2, round(12 * scale)),
+    )
+    draw.polygon(
+        [
+            (round(98 * scale), round(190 * scale)),
+            (round(137 * scale), round(144 * scale)),
+            (round(164 * scale), round(170 * scale)),
+            (round(194 * scale), round(136 * scale)),
+            (round(204 * scale), round(190 * scale)),
+        ],
+        fill=(35, 211, 153, 255),
+    )
+    draw.ellipse(
+        [round(178 * scale), round(92 * scale), round(204 * scale), round(118 * scale)],
+        fill=(255, 214, 92, 255),
+    )
+    draw.rounded_rectangle(
+        [round(116 * scale), round(36 * scale), round(156 * scale), round(128 * scale)],
+        radius=round(16 * scale),
+        fill=(255, 255, 255, 255),
+    )
+    draw.polygon(
+        [
+            (round(80 * scale), round(118 * scale)),
+            (round(192 * scale), round(118 * scale)),
+            (round(136 * scale), round(182 * scale)),
+        ],
+        fill=(255, 255, 255, 255),
+    )
+    draw.rounded_rectangle(
+        [round(92 * scale), round(194 * scale), round(180 * scale), round(218 * scale)],
+        radius=round(12 * scale),
+        fill=(255, 255, 255, 255),
+    )
+    draw.rounded_rectangle(
+        [round(110 * scale), round(200 * scale), round(162 * scale), round(212 * scale)],
+        radius=round(6 * scale),
+        fill=(12, 99, 159, 255),
+    )
+
+    return image
+
+
+def save_png_ico(path: Path, images: list[Image.Image]) -> None:
+    png_entries: list[tuple[int, int, bytes]] = []
+    for image in images:
+        output = io.BytesIO()
+        image.save(output, format="PNG")
+        png_entries.append((image.width, image.height, output.getvalue()))
+
+    offset = 6 + 16 * len(png_entries)
+    with path.open("wb") as icon_file:
+        icon_file.write(struct.pack("<HHH", 0, 1, len(png_entries)))
+        for width, height, png_data in png_entries:
+            icon_file.write(
+                struct.pack(
+                    "<BBBBHHII",
+                    width if width < 256 else 0,
+                    height if height < 256 else 0,
+                    0,
+                    0,
+                    1,
+                    32,
+                    len(png_data),
+                    offset,
+                )
+            )
+            offset += len(png_data)
+        for _, _, png_data in png_entries:
+            icon_file.write(png_data)
+
+
 def main() -> None:
     ASSETS.mkdir(exist_ok=True)
-    icon = make_icon()
+    icon = make_icon(1024)
     icon.save(ASSETS / "icon.png")
-    icon.save(
+    save_png_ico(
         ASSETS / "icon.ico",
-        sizes=[(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)],
+        [
+            make_small_icon(16),
+            make_small_icon(20),
+            make_small_icon(24),
+            make_small_icon(32),
+            make_small_icon(40),
+            make_small_icon(48),
+            make_small_icon(64),
+            icon.resize((128, 128), Image.Resampling.LANCZOS),
+            icon.resize((256, 256), Image.Resampling.LANCZOS),
+        ],
     )
 
 

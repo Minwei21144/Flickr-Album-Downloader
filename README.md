@@ -114,15 +114,19 @@ The build script generates the app icon and includes the custom Tcl/Tk packaging
 
 ## Automated Cross-Platform Builds
 
-The GitHub Actions workflow in `.github/workflows/build.yml` builds zipped app artifacts for:
+The GitHub Actions workflow in `.github/workflows/build.yml` builds release-ready files for:
 
-- Windows x64, x86, and arm64.
-- macOS x64 and arm64.
-- Linux x64 and arm64.
+- `FlickrAlbumDownloader-1.0.0-windows-x64.exe`, `windows-x86.exe`, and `windows-arm64.exe`.
+- `FlickrAlbumDownloader-1.0.0-macos-x64.dmg` and `macos-arm64.dmg`.
+- `FlickrAlbumDownloader-1.0.0-linux-x64.AppImage` and `linux-arm64.AppImage`.
 
-Run the `Build desktop apps` workflow manually from GitHub Actions to create downloadable artifacts. Pushing a version tag such as `v1.0.0` also builds the apps and attaches the zip files to the GitHub Release.
+Run the `Build desktop apps` workflow manually from GitHub Actions to create build artifacts. Pushing a version tag such as `v1.0.0` also builds the apps and attaches the executable release files directly to the GitHub Release.
 
 Windows and Linux arm64 runners are marked as GitHub public preview runners, so they are allowed to fail without blocking the stable x64/x86 builds.
+
+macOS builds are packaged as drag-to-Applications DMG images and ad-hoc signed. They are not Apple-notarized unless a Developer ID certificate is provided, so some macOS installs may still require right-clicking the app and choosing Open the first time.
+
+Linux builds are packaged as AppImage files. Some Linux desktop environments require marking a downloaded AppImage as executable before the first launch.
 
 ## Build on macOS / Linux
 
@@ -131,7 +135,7 @@ PyInstaller builds are platform-specific. Build on the same operating system and
 ```bash
 python -m pip install -r requirements.txt -r requirements-build.txt
 python tools/generate_icons.py
-python -m PyInstaller --onefile --windowed --name "Flickr Album Downloader" --icon assets/icon.png --add-data "assets/icon.png:assets" --add-data "assets/icon.ico:assets" flickr_album_downloader.py
+python -m PyInstaller --windowed --name "Flickr Album Downloader" --icon assets/icon.png --add-data "assets/icon.png:assets" --add-data "assets/icon.ico:assets" flickr_album_downloader.py
 ```
 
 For macOS release builds, use an `.icns` icon. The GitHub Actions workflow converts `assets/icon.png` to `assets/icon.icns` before building the `.app` bundle.

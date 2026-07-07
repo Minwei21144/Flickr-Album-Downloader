@@ -114,15 +114,19 @@ dist\Flickr Album Downloader.exe
 
 ## 自動跨平台打包
 
-`.github/workflows/build.yml` 內的 GitHub Actions workflow 會產生下列 zip 打包檔：
+`.github/workflows/build.yml` 內的 GitHub Actions workflow 會產生下列可發布檔：
 
-- Windows x64、x86、arm64。
-- macOS x64、arm64。
-- Linux x64、arm64。
+- `FlickrAlbumDownloader-1.0.0-windows-x64.exe`、`windows-x86.exe`、`windows-arm64.exe`。
+- `FlickrAlbumDownloader-1.0.0-macos-x64.dmg`、`macos-arm64.dmg`。
+- `FlickrAlbumDownloader-1.0.0-linux-x64.AppImage`、`linux-arm64.AppImage`。
 
-可以從 GitHub Actions 手動執行 `Build desktop apps` 來產生可下載的 artifacts。推送 `v1.0.0` 這類版本 tag 時，也會自動打包並把 zip 檔附加到 GitHub Release。
+可以從 GitHub Actions 手動執行 `Build desktop apps` 來產生 artifacts。推送 `v1.0.0` 這類版本 tag 時，也會自動打包並把可執行的發布檔直接附加到 GitHub Release。
 
 Windows 與 Linux arm64 runner 目前屬於 GitHub public preview，因此設定為即使失敗也不阻塞穩定的 x64 / x86 打包。
+
+macOS 版本會打包成可拖曳到 Applications 的 DMG，並進行 ad-hoc signing。若沒有 Apple Developer ID 憑證進行 notarization，部分 macOS 環境第一次開啟時仍可能需要按右鍵選擇「打開」。
+
+Linux 版本會打包成 AppImage。部分 Linux 桌面環境第一次執行下載來的 AppImage 前，仍需要先允許該檔案可執行。
 
 ## macOS / Linux 打包
 
@@ -131,7 +135,7 @@ PyInstaller 需要在目標作業系統與目標架構上打包。例如 Windows
 ```bash
 python -m pip install -r requirements.txt -r requirements-build.txt
 python tools/generate_icons.py
-python -m PyInstaller --onefile --windowed --name "Flickr Album Downloader" --icon assets/icon.png --add-data "assets/icon.png:assets" --add-data "assets/icon.ico:assets" flickr_album_downloader.py
+python -m PyInstaller --windowed --name "Flickr Album Downloader" --icon assets/icon.png --add-data "assets/icon.png:assets" --add-data "assets/icon.ico:assets" flickr_album_downloader.py
 ```
 
 macOS 發布版需要使用 `.icns` 圖示。GitHub Actions workflow 會先將 `assets/icon.png` 轉成 `assets/icon.icns`，再打包 `.app`。

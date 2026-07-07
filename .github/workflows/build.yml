@@ -21,43 +21,57 @@ jobs:
         include:
           - os: windows-latest
             label: Windows-x64
-            artifact: Flickr Album Downloader-Windows-x64
+            artifact: windows-x64
+            release-suffix: windows-x64
+            asset-ext: exe
             python-arch: x64
             package-kind: windows
             experimental: false
           - os: windows-latest
             label: Windows-x86
-            artifact: Flickr Album Downloader-Windows-x86
+            artifact: windows-x86
+            release-suffix: windows-x86
+            asset-ext: exe
             python-arch: x86
             package-kind: windows
             experimental: false
           - os: windows-11-arm
             label: Windows-arm64
-            artifact: Flickr Album Downloader-Windows-arm64
+            artifact: windows-arm64
+            release-suffix: windows-arm64
+            asset-ext: exe
             python-arch: arm64
             package-kind: windows
             experimental: true
           - os: macos-15-intel
             label: macOS-x64
-            artifact: Flickr Album Downloader-macOS-x64
+            artifact: macos-x64
+            release-suffix: macos-x64
+            asset-ext: dmg
             python-arch: x64
             package-kind: macos
             experimental: false
           - os: macos-15
             label: macOS-arm64
-            artifact: Flickr Album Downloader-macOS-arm64
+            artifact: macos-arm64
+            release-suffix: macos-arm64
+            asset-ext: dmg
             python-arch: arm64
             package-kind: macos
             experimental: false
           - os: ubuntu-latest
             label: Linux-x64
-            artifact: Flickr Album Downloader-Linux-x64
+            artifact: linux-x64
+            release-suffix: linux-x64
+            asset-ext: AppImage
             python-arch: x64
             package-kind: linux
             experimental: false
           - os: ubuntu-24.04-arm
             label: Linux-arm64
-            artifact: Flickr Album Downloader-Linux-arm64
+            artifact: linux-arm64
+            release-suffix: linux-arm64
+            asset-ext: AppImage
             python-arch: arm64
             package-kind: linux
             experimental: true
@@ -71,6 +85,13 @@ jobs:
         with:
           python-version: "3.12"
           architecture: ${{ matrix.python-arch }}
+
+      - name: Set release metadata
+        shell: pwsh
+        run: |
+          $version = python -c "from app_metadata import APP_VERSION; print(APP_VERSION)"
+          "APP_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "APP_SLUG=FlickrAlbumDownloader" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Install Linux Tk runtime
         if: runner.os == 'Linux'
@@ -109,7 +130,6 @@ jobs:
           python -m PyInstaller \
             --clean \
             -y \
-            --onefile \
             --windowed \
             --name "Flickr Album Downloader" \
             --icon assets/icon.icns \
@@ -118,6 +138,9 @@ jobs:
             --add-data "assets/icon.ico:assets" \
             flickr_album_downloader.py
           python tools/update_macos_info_plist.py "dist/Flickr Album Downloader.app/Contents/Info.plist"
+          xattr -cr "dist/Flickr Album Downloader.app" || true
+          codesign --force --deep --sign - "dist/Flickr Album Downloader.app"
+          codesign --verify --deep --strict "dist/Flickr Album Downloader.app"
 
       - name: Build Linux executable
         if: matrix.package-kind == 'linux'
@@ -125,7 +148,6 @@ jobs:
           python -m PyInstaller \
             --clean \
             -y \
-            --onefile \
             --name "Flickr Album Downloader" \
             --icon assets/icon.png \
             --add-data "assets/icon.png:assets" \
@@ -136,40 +158,77 @@ jobs:
         if: matrix.package-kind == 'windows'
         shell: pwsh
         run: |
-          $packageDir = "dist\${{ matrix.artifact }}"
-          New-Item -ItemType Directory -Force -Path $packageDir | Out-Null
-          Copy-Item "dist\Flickr Album Downloader.exe" $packageDir
-          Copy-Item "LICENSE" $packageDir
-          Copy-Item "THIRD_PARTY_NOTICES.md" $packageDir
-          Compress-Archive -Path "$packageDir\*" -DestinationPath "dist\${{ matrix.artifact }}.zip" -Force
+          $assetName = "$env:APP_SLUG-$env:APP_VERSION-${{ matrix.release-suffix }}.exe"
+          Copy-Item "dist\Flickr Album Downloader.exe" "dist\$assetName" -Force
 
-      - name: Package macOS artifact
+      - name: Package macOS DMG
         if: matrix.package-kind == 'macos'
         run: |
-          package_dir="dist/${{ matrix.artifact }}"
-          mkdir -p "$package_dir"
-          cp -R "dist/Flickr Album Downloader.app" "$package_dir/"
-          cp LICENSE "$package_dir/"
-          cp THIRD_PARTY_NOTICES.md "$package_dir/"
-          ditto -c -k --sequesterRsrc --keepParent "$package_dir" "dist/${{ matrix.artifact }}.zip"
+          asset_name="$APP_SLUG-$APP_VERSION-${{ matrix.release-suffix }}.dmg"
+          dmg_root="dist/dmg-root"
+          rm -rf "$dmg_root"
+          mkdir -p "$dmg_root"
+          cp -R "dist/Flickr Album Downloader.app" "$dmg_root/"
+          ln -s /Applications "$dmg_root/Applications"
+          hdiutil create \
+            -volname "Flickr Album Downloader" \
+            -srcfolder "$dmg_root" \
+            -ov \
+            -format UDZO \
+            "dist/$asset_name"
+          codesign --force --sign - "dist/$asset_name" || true
 
-      - name: Package Linux artifact
+      - name: Package Linux AppImage
         if: matrix.package-kind == 'linux'
         run: |
-          chmod +x "dist/Flickr Album Downloader"
-          package_dir="dist/${{ matrix.artifact }}"
-          mkdir -p "$package_dir"
-          cp "dist/Flickr Album Downloader" "$package_dir/"
-          cp LICENSE "$package_dir/"
-          cp THIRD_PARTY_NOTICES.md "$package_dir/"
-          cd dist
-          zip -r "${{ matrix.artifact }}.zip" "${{ matrix.artifact }}"
+          chmod +x "dist/Flickr Album Downloader/Flickr Album Downloader"
+          asset_name="$APP_SLUG-$APP_VERSION-${{ matrix.release-suffix }}.AppImage"
+          appdir="dist/FlickrAlbumDownloader.AppDir"
+          rm -rf "$appdir"
+          mkdir -p "$appdir/usr/bin" "$appdir/usr/share/applications" "$appdir/usr/share/icons/hicolor/256x256/apps" "$appdir/usr/share/doc/flickr-album-downloader"
+          cp -R "dist/Flickr Album Downloader" "$appdir/usr/bin/Flickr Album Downloader"
+          cp assets/icon.png "$appdir/flickr-album-downloader.png"
+          cp assets/icon.png "$appdir/usr/share/icons/hicolor/256x256/apps/flickr-album-downloader.png"
+          cp LICENSE "$appdir/usr/share/doc/flickr-album-downloader/LICENSE"
+          cp THIRD_PARTY_NOTICES.md "$appdir/usr/share/doc/flickr-album-downloader/THIRD_PARTY_NOTICES.md"
+          printf '%s\n' \
+            '[Desktop Entry]' \
+            'Type=Application' \
+            'Name=Flickr Album Downloader' \
+            'Exec=AppRun' \
+            'Icon=flickr-album-downloader' \
+            'Categories=Network;Graphics;' \
+            'Terminal=false' \
+            > "$appdir/flickr-album-downloader.desktop"
+          printf '%s\n' \
+            '#!/bin/sh' \
+            'HERE="$(dirname "$(readlink -f "$0")")"' \
+            'exec "$HERE/usr/bin/Flickr Album Downloader/Flickr Album Downloader" "$@"' \
+            > "$appdir/AppRun"
+          chmod +x "$appdir/AppRun" "$appdir/usr/bin/Flickr Album Downloader/Flickr Album Downloader"
+          case "${{ matrix.release-suffix }}" in
+            linux-x64)
+              tool_arch="x86_64"
+              appimage_arch="x86_64"
+              ;;
+            linux-arm64)
+              tool_arch="aarch64"
+              appimage_arch="aarch64"
+              ;;
+            *)
+              echo "Unsupported Linux AppImage architecture: ${{ matrix.release-suffix }}" >&2
+              exit 1
+              ;;
+          esac
+          curl -L -o appimagetool "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-${tool_arch}.AppImage"
+          chmod +x appimagetool
+          APPIMAGE_EXTRACT_AND_RUN=1 ARCH="$appimage_arch" ./appimagetool "$appdir" "dist/$asset_name"
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
-          path: dist/${{ matrix.artifact }}.zip
+          path: dist/FlickrAlbumDownloader-*-${{ matrix.release-suffix }}.${{ matrix.asset-ext }}
 
   release:
     name: Publish release assets
@@ -186,4 +245,7 @@ jobs:
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: release-assets/**/*.zip
+          files: |
+            release-assets/**/*.exe
+            release-assets/**/*.dmg
+            release-assets/**/*.AppImage

@@ -35,3 +35,8 @@ $TclDir = Join-Path $Prefix "tcl"
     --add-data ".\assets\icon.ico;assets" `
     --add-data ".\assets\icon.png;assets" `
     ".\flickr_album_downloader.py"
+
+$Version = & $Python -c "from app_metadata import APP_VERSION; print(APP_VERSION)"
+$WindowsArch = & $Python -c "import platform; machine=platform.machine().lower(); bits=platform.architecture()[0]; print('windows-arm64' if 'arm' in machine or 'aarch64' in machine else 'windows-x86' if bits == '32bit' else 'windows-x64')"
+$ReleaseExe = "FlickrAlbumDownloader-$Version-$WindowsArch.exe"
+Copy-Item -LiteralPath (Join-Path "dist" "$Name.exe") -Destination (Join-Path "dist" $ReleaseExe) -Force

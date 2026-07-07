@@ -138,6 +138,7 @@ def set_window_icon(root: tk.Tk) -> None:
     try:
         if sys.platform == "win32" and icon_ico.exists():
             root.iconbitmap(default=str(icon_ico))
+            return
     except Exception:
         pass
     try:
