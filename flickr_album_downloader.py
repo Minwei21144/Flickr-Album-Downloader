@@ -28,6 +28,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Iterable
 
+from app_metadata import (
+    APP_IDENTIFIER,
+    APP_NAME,
+    APP_USER_AGENT,
+    APP_VERSION,
+)
+
 _TCL_DLL_REF = None
 
 
@@ -74,7 +81,6 @@ except ImportError:
     ImageTk = None
 
 
-APP_NAME = "Flickr Album Downloader"
 APP_DIR_NAME = "flickr-album-downloader"
 API_ENDPOINT = "https://www.flickr.com/services/rest/"
 PUBLIC_API_KEY_URLS = [
@@ -83,7 +89,7 @@ PUBLIC_API_KEY_URLS = [
     "https://www.flickr.com/search/",
     "https://www.flickr.com/services/api/",
 ]
-USER_AGENT = "FlickrAlbumDownloader/1.0 (+https://www.flickr.com/services/api/)"
+USER_AGENT = APP_USER_AGENT
 HTTP_RETRY_STATUS_CODES = {429, 500, 502, 503, 504}
 HTTP_MAX_RETRIES = 12
 HTTP_MAX_RETRY_DELAY = 600
@@ -116,6 +122,32 @@ COOKIE_JAR: http.cookiejar.MozillaCookieJar | None = None
 COOKIE_FILE_LOADED: str | None = None
 
 DEFAULT_RESOLUTION_OPTIONS = COMMON_RESOLUTION_OPTIONS
+
+
+def app_root_dir() -> Path:
+    return Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
+
+
+def app_asset_path(filename: str) -> Path:
+    return app_root_dir() / "assets" / filename
+
+
+def set_window_icon(root: tk.Tk) -> None:
+    icon_ico = app_asset_path("icon.ico")
+    icon_png = app_asset_path("icon.png")
+    try:
+        if sys.platform == "win32" and icon_ico.exists():
+            root.iconbitmap(default=str(icon_ico))
+    except Exception:
+        pass
+    try:
+        if icon_png.exists():
+            icon_photo = tk.PhotoImage(file=str(icon_png))
+            root.iconphoto(True, icon_photo)
+            root._app_icon_photo = icon_photo
+    except Exception:
+        pass
+
 
 CONFLICT_OPTIONS = [
     ("resume", "恢復進度 / 跳過已存在照片"),
@@ -1712,6 +1744,7 @@ class DownloaderApp:
     def __init__(self, root: tk.Tk, initial_language: str | None = None):
         self.root = root
         self.root.title(APP_NAME)
+        set_window_icon(self.root)
         self.root.geometry("900x760")
         self.root.minsize(820, 680)
 
@@ -2288,6 +2321,7 @@ def language_from_argv(argv: list[str]) -> str:
 def parse_args(argv: list[str]) -> argparse.Namespace:
     help_language = language_from_argv(argv)
     parser = argparse.ArgumentParser(description=tr("cli_description", help_language))
+    parser.add_argument("--version", action="version", version=f"{APP_NAME} {APP_VERSION}")
     parser.add_argument("--cli", action="store_true", help=tr("help_cli", help_language))
     parser.add_argument("--api-key", default=os.environ.get("FLICKR_API_KEY", ""), help=tr("help_api_key", help_language))
     parser.add_argument("--cookies", help=tr("help_cookies", help_language))
@@ -2332,6 +2366,14 @@ def main(argv: list[str] | None = None) -> int:
     if tk is None:
         print(tr("cli_tk_missing"), file=sys.stderr)
         return 2
+
+    if sys.platform == "win32":
+        try:
+            from ctypes import windll
+
+            windll.shell32.SetCurrentProcessExplicitAppUserModelID(APP_IDENTIFIER)
+        except Exception:
+            pass
 
     root = tk.Tk()
     try:

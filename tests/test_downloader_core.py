@@ -5,6 +5,7 @@ import time
 from pathlib import Path
 
 import flickr_album_downloader as downloader
+from app_metadata import APP_USER_AGENT, APP_VERSION
 from flickr_album_downloader import (
     COMMON_RESOLUTION_OPTIONS,
     AlbumData,
@@ -32,6 +33,10 @@ from flickr_album_downloader import (
 
 
 class DownloaderCoreTests(unittest.TestCase):
+    def test_version_metadata_is_used(self):
+        self.assertRegex(APP_VERSION, r"^\d+\.\d+\.\d+$")
+        self.assertEqual(downloader.USER_AGENT, APP_USER_AGENT)
+
     def test_parse_album_url_with_alias(self):
         parsed = parse_album_url("https://www.flickr.com/photos/example-user/albums/72177720300000000/")
         self.assertEqual(parsed.user_token, "example-user")

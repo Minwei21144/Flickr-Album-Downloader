@@ -4,6 +4,8 @@
 
 Flickr Album Downloader is a small desktop and command-line tool for saving Flickr albums to a local folder. It is designed for public albums, Flickr share links, guest pass links, and private albums that you can access in your signed-in browser.
 
+Current app version: `1.0.0`.
+
 The app downloads files directly into an album folder. It does not create a zip archive, and it keeps filenames based on the visible Flickr photo title whenever possible.
 
 ## Features
@@ -74,6 +76,7 @@ English / Traditional Chinese:
 ```bash
 python flickr_album_downloader.py --language en
 python flickr_album_downloader.py --language zh
+python flickr_album_downloader.py --version
 ```
 
 ## Cookie File
@@ -128,7 +131,7 @@ PyInstaller builds are platform-specific. Build on the same operating system and
 ```bash
 python -m pip install -r requirements.txt -r requirements-build.txt
 python tools/generate_icons.py
-python -m PyInstaller --onefile --windowed --name "Flickr Album Downloader" --icon assets/icon.png flickr_album_downloader.py
+python -m PyInstaller --onefile --windowed --name "Flickr Album Downloader" --icon assets/icon.png --add-data "assets/icon.png:assets" --add-data "assets/icon.ico:assets" flickr_album_downloader.py
 ```
 
 For macOS release builds, use an `.icns` icon. The GitHub Actions workflow converts `assets/icon.png` to `assets/icon.icns` before building the `.app` bundle.
@@ -140,6 +143,12 @@ Run tests:
 ```bash
 python -m unittest discover -s tests
 ```
+
+## License
+
+This project's own source code is licensed under the [MIT License](LICENSE).
+
+Built applications may include third-party runtime components such as Python, Tcl/Tk, Pillow, and certifi. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for details.
 
 ## Flickr API References
 

@@ -10,6 +10,7 @@ $DllDir = Join-Path $Prefix "DLLs"
 $TclDir = Join-Path $Prefix "tcl"
 
 & $Python ".\tools\generate_icons.py"
+& $Python ".\tools\generate_windows_version_info.py"
 
 & $Python -m PyInstaller `
     --clean `
@@ -18,6 +19,7 @@ $TclDir = Join-Path $Prefix "tcl"
     --windowed `
     --name $Name `
     --icon ".\assets\icon.ico" `
+    --version-file ".\build\version_info.txt" `
     --additional-hooks-dir ".\pyinstaller_hooks" `
     --runtime-hook ".\pyinstaller_hooks\pyi_rth_tcl_find_executable.py" `
     --hidden-import tkinter `
@@ -30,4 +32,6 @@ $TclDir = Join-Path $Prefix "tcl"
     --add-data "$TclDir\tcl8.6;_tcl_data" `
     --add-data "$TclDir\tk8.6;_tk_data" `
     --add-data "$TclDir\tcl8;tcl8" `
+    --add-data ".\assets\icon.ico;assets" `
+    --add-data ".\assets\icon.png;assets" `
     ".\flickr_album_downloader.py"

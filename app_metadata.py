@@ -1,0 +1,7 @@
+APP_NAME = "Flickr Album Downloader"
+APP_VERSION = "1.0.0"
+APP_PUBLISHER = "Minwei21144"
+APP_DESCRIPTION = "Download Flickr albums to local folders."
+APP_COPYRIGHT = "Copyright (c) 2026 Minwei21144"
+APP_IDENTIFIER = "io.github.minwei21144.flickr-album-downloader"
+APP_USER_AGENT = f"FlickrAlbumDownloader/{APP_VERSION} (+https://www.flickr.com/services/api/)"

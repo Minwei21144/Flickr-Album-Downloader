@@ -4,6 +4,8 @@
 
 Flickr 相簿下載器是一個簡單的桌面與命令列工具，可以把 Flickr 相簿下載到本機資料夾。支援公開相簿、Flickr 分享短網址、guest pass 連結，以及你在瀏覽器登入後可以看到的私人相簿。
 
+目前應用程式版本：`1.0.0`。
+
 程式會直接建立相簿資料夾並下載照片/影片，不會再額外壓縮成 zip。檔名會盡量使用 Flickr 網頁上可見的照片標題。
 
 ## 功能
@@ -74,6 +76,7 @@ python flickr_album_downloader.py --cli \
 ```bash
 python flickr_album_downloader.py --language en
 python flickr_album_downloader.py --language zh
+python flickr_album_downloader.py --version
 ```
 
 ## Cookie 檔案
@@ -128,7 +131,7 @@ PyInstaller 需要在目標作業系統與目標架構上打包。例如 Windows
 ```bash
 python -m pip install -r requirements.txt -r requirements-build.txt
 python tools/generate_icons.py
-python -m PyInstaller --onefile --windowed --name "Flickr Album Downloader" --icon assets/icon.png flickr_album_downloader.py
+python -m PyInstaller --onefile --windowed --name "Flickr Album Downloader" --icon assets/icon.png --add-data "assets/icon.png:assets" --add-data "assets/icon.ico:assets" flickr_album_downloader.py
 ```
 
 macOS 發布版需要使用 `.icns` 圖示。GitHub Actions workflow 會先將 `assets/icon.png` 轉成 `assets/icon.icns`，再打包 `.app`。
@@ -138,6 +141,12 @@ macOS 發布版需要使用 `.icns` 圖示。GitHub Actions workflow 會先將 `
 ```bash
 python -m unittest discover -s tests
 ```
+
+## 授權
+
+本專案自行撰寫的原始碼採用 [MIT License](LICENSE)。
+
+打包後的應用程式可能包含 Python、Tcl/Tk、Pillow、certifi 等第三方 runtime 元件。詳細資訊請見 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 
 ## Flickr API 參考
 

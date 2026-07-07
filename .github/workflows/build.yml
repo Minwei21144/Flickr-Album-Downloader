@@ -113,7 +113,11 @@ jobs:
             --windowed \
             --name "Flickr Album Downloader" \
             --icon assets/icon.icns \
+            --osx-bundle-identifier "io.github.minwei21144.flickr-album-downloader" \
+            --add-data "assets/icon.png:assets" \
+            --add-data "assets/icon.ico:assets" \
             flickr_album_downloader.py
+          python tools/update_macos_info_plist.py "dist/Flickr Album Downloader.app/Contents/Info.plist"
 
       - name: Build Linux executable
         if: matrix.package-kind == 'linux'
@@ -124,23 +128,42 @@ jobs:
             --onefile \
             --name "Flickr Album Downloader" \
             --icon assets/icon.png \
+            --add-data "assets/icon.png:assets" \
+            --add-data "assets/icon.ico:assets" \
             flickr_album_downloader.py
 
       - name: Package Windows artifact
         if: matrix.package-kind == 'windows'
         shell: pwsh
-        run: Compress-Archive -Path "dist\Flickr Album Downloader.exe" -DestinationPath "dist\${{ matrix.artifact }}.zip" -Force
+        run: |
+          $packageDir = "dist\${{ matrix.artifact }}"
+          New-Item -ItemType Directory -Force -Path $packageDir | Out-Null
+          Copy-Item "dist\Flickr Album Downloader.exe" $packageDir
+          Copy-Item "LICENSE" $packageDir
+          Copy-Item "THIRD_PARTY_NOTICES.md" $packageDir
+          Compress-Archive -Path "$packageDir\*" -DestinationPath "dist\${{ matrix.artifact }}.zip" -Force
 
       - name: Package macOS artifact
         if: matrix.package-kind == 'macos'
-        run: ditto -c -k --sequesterRsrc --keepParent "dist/Flickr Album Downloader.app" "dist/${{ matrix.artifact }}.zip"
+        run: |
+          package_dir="dist/${{ matrix.artifact }}"
+          mkdir -p "$package_dir"
+          cp -R "dist/Flickr Album Downloader.app" "$package_dir/"
+          cp LICENSE "$package_dir/"
+          cp THIRD_PARTY_NOTICES.md "$package_dir/"
+          ditto -c -k --sequesterRsrc --keepParent "$package_dir" "dist/${{ matrix.artifact }}.zip"
 
       - name: Package Linux artifact
         if: matrix.package-kind == 'linux'
         run: |
           chmod +x "dist/Flickr Album Downloader"
+          package_dir="dist/${{ matrix.artifact }}"
+          mkdir -p "$package_dir"
+          cp "dist/Flickr Album Downloader" "$package_dir/"
+          cp LICENSE "$package_dir/"
+          cp THIRD_PARTY_NOTICES.md "$package_dir/"
           cd dist
-          zip "${{ matrix.artifact }}.zip" "Flickr Album Downloader"
+          zip -r "${{ matrix.artifact }}.zip" "${{ matrix.artifact }}"
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
