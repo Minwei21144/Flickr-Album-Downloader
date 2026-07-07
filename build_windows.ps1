@@ -1,6 +1,6 @@
 param(
     [string]$Python = "python",
-    [string]$Name = "FlickrAlbumDownloader"
+    [string]$Name = "Flickr Album Downloader"
 )
 
 $ErrorActionPreference = "Stop"
@@ -9,12 +9,15 @@ $Prefix = & $Python -c "import sys; print(sys.base_prefix)"
 $DllDir = Join-Path $Prefix "DLLs"
 $TclDir = Join-Path $Prefix "tcl"
 
+& $Python ".\tools\generate_icons.py"
+
 & $Python -m PyInstaller `
     --clean `
     -y `
     --onefile `
     --windowed `
     --name $Name `
+    --icon ".\assets\icon.ico" `
     --additional-hooks-dir ".\pyinstaller_hooks" `
     --runtime-hook ".\pyinstaller_hooks\pyi_rth_tcl_find_executable.py" `
     --hidden-import tkinter `

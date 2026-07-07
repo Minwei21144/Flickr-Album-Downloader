@@ -92,7 +92,7 @@ python flickr_album_downloader.py --language zh
 安裝打包工具：
 
 ```powershell
-python -m pip install -r requirements-build.txt
+python -m pip install -r requirements.txt -r requirements-build.txt
 ```
 
 打包：
@@ -104,19 +104,34 @@ python -m pip install -r requirements-build.txt
 執行檔會輸出到：
 
 ```text
-dist\FlickrAlbumDownloader.exe
+dist\Flickr Album Downloader.exe
 ```
 
-這個打包腳本包含 Python 3.14 Windows 環境需要的 Tcl/Tk 自訂 hook。
+這個打包腳本會產生應用程式圖示，並包含 Python 3.14 Windows 環境需要的 Tcl/Tk 自訂 hook。
+
+## 自動跨平台打包
+
+`.github/workflows/build.yml` 內的 GitHub Actions workflow 會產生下列 zip 打包檔：
+
+- Windows x64、x86、arm64。
+- macOS x64、arm64。
+- Linux x64、arm64。
+
+可以從 GitHub Actions 手動執行 `Build desktop apps` 來產生可下載的 artifacts。推送 `v1.0.0` 這類版本 tag 時，也會自動打包並把 zip 檔附加到 GitHub Release。
+
+Windows 與 Linux arm64 runner 目前屬於 GitHub public preview，因此設定為即使失敗也不阻塞穩定的 x64 / x86 打包。
 
 ## macOS / Linux 打包
 
 PyInstaller 需要在目標作業系統與目標架構上打包。例如 Windows x64 要在 Windows x64 打包，macOS ARM 要在 Apple Silicon Mac 打包。
 
 ```bash
-python -m pip install -r requirements-build.txt
-python -m PyInstaller --onefile --windowed --name FlickrAlbumDownloader flickr_album_downloader.py
+python -m pip install -r requirements.txt -r requirements-build.txt
+python tools/generate_icons.py
+python -m PyInstaller --onefile --windowed --name "Flickr Album Downloader" --icon assets/icon.png flickr_album_downloader.py
 ```
+
+macOS 發布版需要使用 `.icns` 圖示。GitHub Actions workflow 會先將 `assets/icon.png` 轉成 `assets/icon.icns`，再打包 `.app`。
 
 ## 開發測試
 

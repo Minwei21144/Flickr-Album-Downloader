@@ -92,7 +92,7 @@ For private albums, export cookies from a browser where you are already signed i
 Install build dependencies:
 
 ```powershell
-python -m pip install -r requirements-build.txt
+python -m pip install -r requirements.txt -r requirements-build.txt
 ```
 
 Build:
@@ -104,19 +104,34 @@ Build:
 The executable will be written to:
 
 ```text
-dist\FlickrAlbumDownloader.exe
+dist\Flickr Album Downloader.exe
 ```
 
-The build script includes the custom Tcl/Tk packaging hooks needed for Python 3.14 Windows installs.
+The build script generates the app icon and includes the custom Tcl/Tk packaging hooks needed for Python 3.14 Windows installs.
+
+## Automated Cross-Platform Builds
+
+The GitHub Actions workflow in `.github/workflows/build.yml` builds zipped app artifacts for:
+
+- Windows x64, x86, and arm64.
+- macOS x64 and arm64.
+- Linux x64 and arm64.
+
+Run the `Build desktop apps` workflow manually from GitHub Actions to create downloadable artifacts. Pushing a version tag such as `v1.0.0` also builds the apps and attaches the zip files to the GitHub Release.
+
+Windows and Linux arm64 runners are marked as GitHub public preview runners, so they are allowed to fail without blocking the stable x64/x86 builds.
 
 ## Build on macOS / Linux
 
 PyInstaller builds are platform-specific. Build on the same operating system and CPU architecture that you want to distribute for.
 
 ```bash
-python -m pip install -r requirements-build.txt
-python -m PyInstaller --onefile --windowed --name FlickrAlbumDownloader flickr_album_downloader.py
+python -m pip install -r requirements.txt -r requirements-build.txt
+python tools/generate_icons.py
+python -m PyInstaller --onefile --windowed --name "Flickr Album Downloader" --icon assets/icon.png flickr_album_downloader.py
 ```
+
+For macOS release builds, use an `.icns` icon. The GitHub Actions workflow converts `assets/icon.png` to `assets/icon.icns` before building the `.app` bundle.
 
 ## Development
 
