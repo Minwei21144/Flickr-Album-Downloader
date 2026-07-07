@@ -2,15 +2,25 @@
 
 [English README](README.md)
 
-Flickr 相簿下載器是一個簡單的桌面與命令列工具，用來把 Flickr 相簿儲存到本機資料夾。它支援公開相簿、Flickr 分享短連結、guest pass 連結，以及你已經能在登入瀏覽器中查看的私人相簿。
+Flickr 相簿下載器是一個簡單的桌面工具，用來把 Flickr 相簿儲存到本機資料夾。它支援公開相簿、Flickr 分享短連結、guest pass 連結，以及你已經能在登入瀏覽器中查看的私人相簿。
 
 目前版本：`1.0.0`
 
-程式會直接把檔案下載到相簿資料夾，不會另外建立 zip 壓縮檔。檔名會盡量依照 Flickr 網頁上可見的相片標題保留。
+## 下載
+
+請從 [Releases 頁面](https://github.com/Minwei21144/Flickr-Album-Downloader/releases) 下載已打包好的程式。
+
+Release 檔案：
+
+- Windows：`FlickrAlbumDownloader-1.0.0-windows-x64.exe`、`windows-x86.exe`、`windows-arm64.exe`
+- macOS 未簽章 app ZIP：`FlickrAlbumDownloader-1.0.0-macos-arm64.app.zip`、`macos-x64.app.zip`
+- Linux AppImage：`FlickrAlbumDownloader-1.0.0-linux-x64.AppImage`、`linux-arm64.AppImage`
+
+macOS 版本在未設定 Apple Developer ID 公證資訊時會是未簽章版本。請參考 [未簽章 macOS 安裝說明](docs/macos-unsigned-install.zh_TW.md)。
 
 ## 功能
 
-- 支援 Windows、macOS、Linux。
+- 支援 Windows、macOS、Linux 桌面環境。
 - 圖形介面支援英文與繁體中文切換。
 - 支援標準相簿網址、短分享網址與 guest pass 網址。
 - 可匯入 `cookies.txt`，下載你登入後可查看的私人相簿。
@@ -22,36 +32,27 @@ Flickr 相簿下載器是一個簡單的桌面與命令列工具，用來把 Fli
 - 支援資料夾衝突處理：恢復、跳過、覆蓋、另存新資料夾。
 - 內建 Flickr HTTP 429 限流重試與退避等待。
 
-## 注意事項
+## 使用注意事項
 
 - 請只下載你有權存取與保存的相簿和檔案。
 - 私人相簿需要從已登入且有權限查看 Flickr 的瀏覽器匯出 cookies。
 - 過高的同時下載數可能觸發 Flickr HTTP 429。大型原檔相簿建議先用 `1` 個下載執行緒與恢復模式，再逐步提高。
 - 如果 429 持續超過約 10 分鐘，請先等待再試。不要頻繁切換 IP 來規避服務限制。
 
-## 安裝
+## Cookie 檔案
 
-建議使用 Python 3.10 或更新版本。
+私人相簿請從已登入 Flickr 且有權限查看相簿的瀏覽器匯出 Netscape `cookies.txt` 格式。請妥善保管這個檔案，因為它可能允許存取你的 Flickr 登入狀態。
 
-```bash
-python -m pip install -r requirements.txt
-```
+## 資料夾衝突模式
 
-Linux 若 Python 沒有內建 Tkinter，請先安裝：
+- `resume`：保留資料夾，跳過已存在的檔案。
+- `skip`：如果資料夾已存在，跳過整個相簿。
+- `overwrite`：刪除並重新建立相簿資料夾。
+- `rename`：另存成新資料夾，例如 `相簿名稱 (2)`。
 
-```bash
-sudo apt install python3-tk
-```
+## 命令列
 
-## 啟動圖形介面
-
-```bash
-python flickr_album_downloader.py
-```
-
-貼上 Flickr 相簿網址，按下確認，檢查相簿名稱與封面預覽後，再按開始下載。
-
-## 命令列用法
+一般使用者建議直接使用打包好的桌面程式。Python 原始碼也支援命令列操作：
 
 ```bash
 python flickr_album_downloader.py --cli \
@@ -71,85 +72,23 @@ python flickr_album_downloader.py --cli \
   --output "./downloads"
 ```
 
-英文 / 繁體中文：
-
-```bash
-python flickr_album_downloader.py --language en
-python flickr_album_downloader.py --language zh
-python flickr_album_downloader.py --version
-```
-
-## Cookie 檔案
-
-私人相簿請從已登入 Flickr 且有權限查看相簿的瀏覽器匯出 Netscape `cookies.txt` 格式。請妥善保管這個檔案，因為它可能允許存取你的 Flickr 登入狀態。
-
-## 資料夾衝突模式
-
-- `resume`：保留資料夾，跳過已存在的檔案。
-- `skip`：如果資料夾已存在，跳過整個相簿。
-- `overwrite`：刪除並重新建立相簿資料夾。
-- `rename`：另存成新資料夾，例如 `相簿名稱 (2)`。
-
-## 建立 Windows 執行檔
-
-安裝建置依賴：
-
-```powershell
-python -m pip install -r requirements.txt -r requirements-build.txt
-```
-
-建置：
-
-```powershell
-.\build_windows.ps1
-```
-
-執行檔會輸出到：
-
-```text
-dist\Flickr Album Downloader.exe
-```
-
-建置腳本會產生應用程式圖示，並包含 Python 3.14 Windows 安裝所需的 Tcl/Tk PyInstaller hook。
-
-## 自動跨平台建置
-
-`.github/workflows/build.yml` 會建立以下 release 檔案：
-
-- `FlickrAlbumDownloader-1.0.0-windows-x64.exe`、`windows-x86.exe`、`windows-arm64.exe`。
-- 未簽章 macOS fallback 版本：`FlickrAlbumDownloader-1.0.0-macos-x64.app.zip`、`macos-arm64.app.zip`。
-- 設定 Apple Developer ID secrets 後的 Apple 公證 macOS 版本：`FlickrAlbumDownloader-1.0.0-macos-x64.dmg`、`macos-arm64.dmg`。
-- `FlickrAlbumDownloader-1.0.0-linux-x64.AppImage`、`linux-arm64.AppImage`。
-
-可以在 GitHub Actions 手動執行 `Build desktop apps` 產生 artifacts。推送 `v1.0.0` 這類版本 tag 時，也會自動建立 GitHub Release 並附上執行檔。
-
-Windows 與 Linux arm64 runner 目前屬於 GitHub public preview runner，因此允許失敗，不會阻擋穩定的 x64 / x86 建置。
-
-沒有 Apple Developer ID secrets 時，macOS 會產出 `.app.zip`，避免未簽章 DMG 在掛載前就被 Gatekeeper 阻擋。使用者解壓後仍需要手動允許未簽章 `.app`。請參考 [未簽章 macOS 安裝說明](docs/macos-unsigned-install.zh_TW.md)。
-
-若日後設定 Apple Developer ID 與 App Store Connect API secrets，GitHub Actions 會簽署 `.app`、簽署 `.dmg`、提交 Apple notarization、公證完成後 staple 票據並驗證結果。請參考 [macOS 公證設定](docs/macos-notarization.zh_TW.md)。
-
-Linux 版本會打包成 AppImage。部分 Linux 桌面環境第一次啟動前需要先把 AppImage 標記為可執行。
-
-## macOS / Linux 建置
-
-PyInstaller 的建置結果與作業系統和 CPU 架構相關；請在要發行的相同平台上建置。
-
-```bash
-python -m pip install -r requirements.txt -r requirements-build.txt
-python tools/generate_icons.py
-python -m PyInstaller --windowed --name "Flickr Album Downloader" --icon assets/icon.png --add-data "assets/icon.png:assets" --add-data "assets/icon.ico:assets" flickr_album_downloader.py
-```
-
-macOS release 建置會使用 `.icns` 圖示。GitHub Actions 會先把 `assets/icon.png` 轉成 `assets/icon.icns`，再建立 `.app` bundle。
-
 ## 開發
 
-執行測試：
+原始碼執行與本機開發建議使用 Python 3.10 或更新版本。
 
 ```bash
+python -m pip install -r requirements.txt
+python flickr_album_downloader.py
 python -m unittest discover -s tests
 ```
+
+Release 建置由 `.github/workflows/build.yml` 處理。Windows 本機建置可使用 `build_windows.ps1`。
+
+## macOS 打包
+
+沒有 Apple Developer ID secrets 時，GitHub Actions 會發布未簽章 `.app.zip`。這可以避免未簽章 DMG 在掛載前就被 Gatekeeper 阻擋，但使用者解壓後仍需要手動允許該 App。請參考 [未簽章 macOS 安裝說明](docs/macos-unsigned-install.zh_TW.md)。
+
+若日後設定 Apple Developer ID 與 App Store Connect API secrets，GitHub Actions 會簽署 `.app`、簽署 `.dmg`、提交 Apple notarization、公證完成後 staple 票據並驗證結果。請參考 [macOS 公證設定](docs/macos-notarization.zh_TW.md)。
 
 ## 授權
 

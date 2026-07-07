@@ -9,7 +9,6 @@ if str(ROOT) not in sys.path:
 
 from app_metadata import (
     APP_COPYRIGHT,
-    APP_DESCRIPTION,
     APP_NAME,
     APP_PUBLISHER,
     APP_VERSION,
@@ -47,7 +46,7 @@ VSVersionInfo(
         '040904B0',
         [
           StringStruct('CompanyName', '{APP_PUBLISHER}'),
-          StringStruct('FileDescription', '{APP_DESCRIPTION}'),
+          StringStruct('FileDescription', '{APP_NAME}'),
           StringStruct('FileVersion', '{file_version_text}'),
           StringStruct('InternalName', '{APP_NAME}'),
           StringStruct('LegalCopyright', '{APP_COPYRIGHT}'),
