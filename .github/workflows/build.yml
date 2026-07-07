@@ -240,8 +240,14 @@ jobs:
           $assetName = "$env:APP_SLUG-$env:APP_VERSION-${{ matrix.release-suffix }}.exe"
           Copy-Item "dist\Flickr Album Downloader.exe" "dist\$assetName" -Force
 
+      - name: Package unsigned macOS app ZIP
+        if: matrix.package-kind == 'macos' && env.MACOS_NOTARIZATION_ENABLED != 'true'
+        run: |
+          asset_name="$APP_SLUG-$APP_VERSION-${{ matrix.release-suffix }}.app.zip"
+          ditto -c -k --keepParent "dist/Flickr Album Downloader.app" "dist/$asset_name"
+
       - name: Package macOS DMG
-        if: matrix.package-kind == 'macos'
+        if: matrix.package-kind == 'macos' && env.MACOS_NOTARIZATION_ENABLED == 'true'
         run: |
           asset_name="$APP_SLUG-$APP_VERSION-${{ matrix.release-suffix }}.dmg"
           dmg_root="dist/dmg-root"
@@ -255,11 +261,7 @@ jobs:
             -ov \
             -format UDZO \
             "dist/$asset_name"
-          if [ "${MACOS_NOTARIZATION_ENABLED:-false}" = "true" ]; then
-            codesign --force --timestamp --keychain "$MACOS_SIGNING_KEYCHAIN" --sign "$APPLE_CODESIGN_IDENTITY" "dist/$asset_name"
-          else
-            codesign --force --sign - "dist/$asset_name" || true
-          fi
+          codesign --force --timestamp --keychain "$MACOS_SIGNING_KEYCHAIN" --sign "$APPLE_CODESIGN_IDENTITY" "dist/$asset_name"
 
       - name: Notarize macOS DMG
         if: matrix.package-kind == 'macos' && env.MACOS_NOTARIZATION_ENABLED == 'true'
@@ -331,7 +333,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
-          path: dist/FlickrAlbumDownloader-*-${{ matrix.release-suffix }}.${{ matrix.asset-ext }}
+          path: dist/FlickrAlbumDownloader-*-${{ matrix.release-suffix }}.*
 
       - name: Clean up macOS signing keychain
         if: always() && matrix.package-kind == 'macos' && env.MACOS_NOTARIZATION_ENABLED == 'true'
@@ -356,5 +358,6 @@ jobs:
         with:
           files: |
             release-assets/**/*.exe
+            release-assets/**/*.zip
             release-assets/**/*.dmg
             release-assets/**/*.AppImage

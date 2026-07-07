@@ -1,6 +1,6 @@
 # macOS Notarization Setup
 
-The GitHub Actions workflow can create Apple-notarized DMG files when the required Apple secrets are configured. Without these secrets, macOS builds still run, but they are ad-hoc signed test builds and may be blocked by Gatekeeper.
+The GitHub Actions workflow can create Apple-notarized DMG files when the required Apple secrets are configured. Without these secrets, macOS builds still run, but they are ad-hoc signed `.app.zip` test builds and may be blocked by Gatekeeper when the extracted app is opened.
 
 Traditional Chinese: [macOS 公證設定](macos-notarization.zh_TW.md)
 
@@ -101,4 +101,4 @@ When all required secrets are present, the macOS jobs will:
 7. Staple the notarization ticket with `xcrun stapler`.
 8. Verify the DMG with `spctl`.
 
-If any required secret is missing, the workflow keeps producing ad-hoc signed test DMGs instead of failing the whole build.
+If any required secret is missing, the workflow keeps producing ad-hoc signed `.app.zip` test builds instead of failing the whole build. These unsigned builds are intended for users who understand how to manually allow an app from an unidentified developer. See [unsigned macOS install notes](macos-unsigned-install.md).

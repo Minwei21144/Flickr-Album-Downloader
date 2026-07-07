@@ -1,6 +1,6 @@
 # macOS 公證設定
 
-GitHub Actions 已支援在設定 Apple secrets 後產生 Apple 公證過的 DMG。沒有設定 secrets 時，macOS 建置仍會繼續產出測試用 DMG，但它只會是 ad-hoc 簽章，可能仍被 Gatekeeper 擋下。
+GitHub Actions 已支援在設定 Apple secrets 後產生 Apple 公證過的 DMG。沒有設定 secrets 時，macOS 建置仍會繼續產出測試用 `.app.zip`，但它只會是 ad-hoc 簽章，解壓後第一次開啟 `.app` 時仍可能被 Gatekeeper 擋下。
 
 English: [macOS notarization setup](macos-notarization.md)
 
@@ -101,4 +101,4 @@ git push origin v1.0.0
 7. 用 `xcrun stapler` 釘上公證票據。
 8. 用 `spctl` 驗證 DMG。
 
-如果少了任一必填 secret，workflow 不會直接失敗，而是維持產出 ad-hoc signed 測試用 DMG。
+如果少了任一必填 secret，workflow 不會直接失敗，而是維持產出 ad-hoc signed `.app.zip` 測試版。這種未簽章版本適合知道如何手動允許未知開發者 App 的使用者。請參考 [未簽章 macOS 安裝說明](macos-unsigned-install.zh_TW.md)。

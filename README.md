@@ -117,14 +117,17 @@ The build script generates the app icon and includes the custom Tcl/Tk packaging
 The GitHub Actions workflow in `.github/workflows/build.yml` builds release-ready files for:
 
 - `FlickrAlbumDownloader-1.0.0-windows-x64.exe`, `windows-x86.exe`, and `windows-arm64.exe`.
-- `FlickrAlbumDownloader-1.0.0-macos-x64.dmg` and `macos-arm64.dmg`.
+- Unsigned macOS fallback builds: `FlickrAlbumDownloader-1.0.0-macos-x64.app.zip` and `macos-arm64.app.zip`.
+- Apple-notarized macOS builds, when Apple Developer ID secrets are configured: `FlickrAlbumDownloader-1.0.0-macos-x64.dmg` and `macos-arm64.dmg`.
 - `FlickrAlbumDownloader-1.0.0-linux-x64.AppImage` and `linux-arm64.AppImage`.
 
 Run the `Build desktop apps` workflow manually from GitHub Actions to create build artifacts. Pushing a version tag such as `v1.0.0` also builds the apps and attaches the executable release files directly to the GitHub Release.
 
 Windows and Linux arm64 runners are marked as GitHub public preview runners, so they are allowed to fail without blocking the stable x64/x86 builds.
 
-macOS builds are packaged as drag-to-Applications DMG images. By default they are ad-hoc signed for testing. If Apple Developer ID and App Store Connect API secrets are configured, GitHub Actions signs the `.app`, signs the `.dmg`, submits the DMG for Apple notarization, staples the notarization ticket, and verifies the result. See [macOS notarization setup](docs/macos-notarization.md).
+macOS builds without Apple Developer ID secrets are packaged as `.app.zip` files instead of DMG images. This avoids Gatekeeper blocking the unsigned DMG before it can even be mounted. Users still need to explicitly allow the unsigned `.app` after extracting it. See [unsigned macOS install notes](docs/macos-unsigned-install.md).
+
+If Apple Developer ID and App Store Connect API secrets are configured, GitHub Actions signs the `.app`, signs the `.dmg`, submits the DMG for Apple notarization, staples the notarization ticket, and verifies the result. See [macOS notarization setup](docs/macos-notarization.md).
 
 Linux builds are packaged as AppImage files. Some Linux desktop environments require marking a downloaded AppImage as executable before the first launch.
 
