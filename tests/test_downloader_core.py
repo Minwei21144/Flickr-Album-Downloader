@@ -228,7 +228,7 @@ class DownloaderCoreTests(unittest.TestCase):
                 manifest = album_dir / ".flickr_download_manifest.json"
                 manifest.write_text("old", encoding="utf-8")
                 result = download_prepared_album_to_folder(album, Path(tmpdir), "original", workers=1)
-                self.assertEqual(result, album_dir)
+                self.assertTrue(result.samefile(album_dir), f"{result} != {album_dir}")
                 self.assertFalse(manifest.exists())
         finally:
             downloader.download_to_file = original_download_to_file
