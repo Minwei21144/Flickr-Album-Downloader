@@ -2,6 +2,8 @@
 
 [繁體中文說明](README.zh_TW.md)
 
+![Flickr Album Downloader screenshot](docs/images/app-screenshot.png)
+
 Flickr Album Downloader is a small desktop tool for saving Flickr albums to a local folder. It supports public albums, Flickr share links, guest pass links, and private albums that you can access in your signed-in browser.
 
 Current version: `1.0.0`

@@ -2,6 +2,8 @@
 
 [English README](README.md)
 
+![Flickr 相簿下載器畫面截圖](docs/images/app-screenshot.png)
+
 Flickr 相簿下載器是一個簡單的桌面工具，用來把 Flickr 相簿儲存到本機資料夾。它支援公開相簿、Flickr 分享短連結、guest pass 連結，以及你已經能在登入瀏覽器中查看的私人相簿。
 
 目前版本：`1.0.0`
