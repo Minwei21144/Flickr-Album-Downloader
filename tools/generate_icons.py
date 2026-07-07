@@ -120,7 +120,46 @@ def make_icon(size: int = 1024) -> Image.Image:
     return image
 
 
+def make_tiny_icon(size: int) -> Image.Image:
+    image = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(image)
+
+    if size <= 20:
+        bg = [1, 1, size - 2, size - 2]
+        radius = 4
+        stem = [size // 2 - 1, max(3, size // 5), size // 2 + 1, size // 2 + 1]
+        head = [(size // 2 - 5, size // 2), (size // 2 + 5, size // 2), (size // 2, size - 5)]
+        tray = [size // 2 - 5, size - 4, size // 2 + 5, size - 3]
+    elif size <= 32:
+        bg = [2, 2, size - 3, size - 3]
+        radius = 6
+        stem = [size // 2 - 2, size // 5, size // 2 + 2, size // 2 + 2]
+        head = [(size // 2 - 8, size // 2), (size // 2 + 8, size // 2), (size // 2, size - 8)]
+        tray = [size // 2 - 8, size - 6, size // 2 + 8, size - 4]
+    else:
+        bg = [3, 3, size - 4, size - 4]
+        radius = max(7, size // 5)
+        stem = [size // 2 - max(2, size // 13), size // 5, size // 2 + max(2, size // 13), size // 2 + max(3, size // 15)]
+        head = [(size // 2 - size // 4, size // 2), (size // 2 + size // 4, size // 2), (size // 2, size - size // 4)]
+        tray = [size // 2 - size // 4, size - size // 6, size // 2 + size // 4, size - size // 9]
+
+    draw.rounded_rectangle(bg, radius=radius, fill=(20, 142, 207, 255))
+    draw.rounded_rectangle(bg, radius=radius, outline=(101, 221, 241, 255), width=1)
+    draw.rectangle(stem, fill=(255, 255, 255, 255))
+    draw.polygon(head, fill=(255, 255, 255, 255))
+    if size >= 24:
+        draw.rounded_rectangle(tray, radius=max(1, size // 18), fill=(255, 255, 255, 255))
+        inner = [tray[0] + max(1, size // 12), tray[1] + 1, tray[2] - max(1, size // 12), max(tray[1] + 1, tray[3] - 1)]
+        if inner[2] > inner[0]:
+            draw.rectangle(inner, fill=(12, 94, 152, 255))
+
+    return image
+
+
 def make_small_icon(size: int) -> Image.Image:
+    if size <= 48:
+        return make_tiny_icon(size)
+
     scale = size / 256
     image = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(image)
