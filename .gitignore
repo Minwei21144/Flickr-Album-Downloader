@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.agents/
+.codex/
+build/
+dist/
+release/
+downloads_full_test/
+*.spec
+*.zip.part
+*.log
+cookies*.txt
