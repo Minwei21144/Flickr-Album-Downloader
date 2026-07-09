@@ -5,6 +5,7 @@ import time
 from pathlib import Path
 
 import flickr_album_downloader as downloader
+import update_checker
 from app_metadata import APP_USER_AGENT, APP_VERSION
 from flickr_album_downloader import (
     COMMON_RESOLUTION_OPTIONS,
@@ -52,6 +53,37 @@ class DownloaderCoreTests(unittest.TestCase):
         self.assertTrue(result.is_update_available)
         self.assertEqual(result.latest_version, "1.2.0")
         self.assertEqual(result.release_url, "https://example.test/releases/v1.2.0")
+
+    def test_update_check_uses_ssl_context(self):
+        original_urlopen = update_checker.urllib.request.urlopen
+        original_ssl_context = update_checker.ssl_context
+        sentinel_context = object()
+        captured = {}
+
+        class FakeResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, traceback):
+                return False
+
+            def read(self):
+                return b'{"tag_name":"v1.2.0","html_url":"https://example.test/releases/v1.2.0"}'
+
+        def fake_urlopen(request, timeout=None, context=None):
+            captured["context"] = context
+            return FakeResponse()
+
+        try:
+            update_checker.ssl_context = lambda: sentinel_context
+            update_checker.urllib.request.urlopen = fake_urlopen
+            result = update_checker.check_for_update(current_version="1.1.0")
+        finally:
+            update_checker.urllib.request.urlopen = original_urlopen
+            update_checker.ssl_context = original_ssl_context
+
+        self.assertIs(captured["context"], sentinel_context)
+        self.assertTrue(result.is_update_available)
 
     def test_parse_album_url_with_alias(self):
         parsed = parse_album_url("https://www.flickr.com/photos/example-user/albums/72177720300000000/")

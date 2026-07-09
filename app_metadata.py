@@ -1,5 +1,5 @@
 APP_NAME = "Flickr Album Downloader"
-APP_VERSION = "1.1.0"
+APP_VERSION = "1.1.1"
 APP_PUBLISHER = "Minwei21144"
 APP_DESCRIPTION = "Download Flickr albums to local folders."
 APP_COPYRIGHT = "Copyright (c) 2026 Minwei21144"

@@ -86,8 +86,8 @@ base64 -i DeveloperIDApplication.p12 | tr -d '\n' | pbcopy
 手動執行 **Build desktop apps** workflow，或推送版本 tag：
 
 ```bash
-git tag v1.1.0
-git push origin v1.1.0
+git tag v1.1.1
+git push origin v1.1.1
 ```
 
 當所有 secrets 都存在時，macOS jobs 會：

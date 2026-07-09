@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+import ssl
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
@@ -21,6 +22,14 @@ GITHUB_API_HEADERS = {
     "X-GitHub-Api-Version": "2022-11-28",
     "User-Agent": APP_USER_AGENT,
 }
+
+
+def ssl_context() -> ssl.SSLContext | None:
+    try:
+        import certifi
+    except ImportError:
+        return None
+    return ssl.create_default_context(cafile=certifi.where())
 
 
 @dataclass(frozen=True)
@@ -86,7 +95,7 @@ def update_error_result(error: str, current_version: str = APP_VERSION) -> Updat
 def check_for_update(current_version: str = APP_VERSION, timeout: float = 10.0) -> UpdateCheckResult:
     request = urllib.request.Request(APP_LATEST_RELEASE_API_URL, headers=GITHUB_API_HEADERS)
     try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
+        with urllib.request.urlopen(request, timeout=timeout, context=ssl_context()) as response:
             payload = json.loads(response.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
         return update_error_result(f"GitHub HTTP {exc.code}", current_version)

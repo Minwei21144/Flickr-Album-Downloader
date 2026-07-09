@@ -6,7 +6,7 @@
 
 Flickr Album Downloader is a small desktop tool for saving Flickr albums to a local folder. It supports public albums, Flickr share links, guest pass links, and private albums that you can access in your signed-in browser.
 
-Current version: `1.1.0`
+Current version: `1.1.1`
 
 ## Download
 
@@ -14,9 +14,9 @@ Download the packaged app from the [Releases page](https://github.com/Minwei2114
 
 Release files:
 
-- Windows: `FlickrAlbumDownloader-1.1.0-windows-x64.exe`, `windows-x86.exe`, `windows-arm64.exe`
-- macOS unsigned app ZIP: `FlickrAlbumDownloader-1.1.0-macos-arm64.app.zip`, `macos-x64.app.zip`
-- Linux AppImage: `FlickrAlbumDownloader-1.1.0-linux-x64.AppImage`, `linux-arm64.AppImage`
+- Windows: `FlickrAlbumDownloader-1.1.1-windows-x64.exe`, `windows-x86.exe`, `windows-arm64.exe`
+- macOS unsigned app ZIP: `FlickrAlbumDownloader-1.1.1-macos-arm64.app.zip`, `macos-x64.app.zip`
+- Linux AppImage: `FlickrAlbumDownloader-1.1.1-linux-x64.AppImage`, `linux-arm64.AppImage`
 
 macOS builds are unsigned unless Apple Developer ID notarization secrets are configured. See [unsigned macOS install notes](docs/macos-unsigned-install.md).
 
