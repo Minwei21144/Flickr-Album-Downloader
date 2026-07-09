@@ -86,8 +86,8 @@ Add these secrets:
 Run the **Build desktop apps** workflow manually, or push a version tag such as:
 
 ```bash
-git tag v1.0.0
-git push origin v1.0.0
+git tag v1.1.0
+git push origin v1.1.0
 ```
 
 When all required secrets are present, the macOS jobs will:

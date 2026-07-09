@@ -24,16 +24,19 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import webbrowser
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Iterable
 
 from app_metadata import (
+    APP_CURRENT_RELEASE_URL,
     APP_IDENTIFIER,
     APP_NAME,
     APP_USER_AGENT,
     APP_VERSION,
 )
+from update_checker import UpdateCheckResult, check_for_update
 
 _TCL_DLL_REF = None
 
@@ -392,6 +395,44 @@ TEXT = {
         "worker_notice": "Note: Flickr is more likely to return 429 when parallel downloads exceed 1. For large original-size albums, start with 1 worker and resume mode. If you need more speed, increase gradually and watch for rate limiting. Current setting: {workers} workers.",
     },
 }
+
+TEXT["zh"].update(
+    {
+        "btn_check_updates": "檢查更新",
+        "current_version": "目前版本 v{version}",
+        "footer_separator": "  |  ",
+        "log_open_current_release": "開啟目前版本 Release：{url}",
+        "update_already_running": "正在檢查更新，請稍候。",
+        "update_check_available": "有新版本可用：v{current} -> v{latest}",
+        "update_check_failed": "更新檢查失敗：{error}",
+        "update_check_latest": "已是最新版本：v{version}",
+        "update_check_start_auto": "正在自動檢查更新。",
+        "update_check_start_manual": "正在檢查更新。",
+        "update_dialog_available": "GitHub Releases 有新版本可用。\n\n目前版本：v{current}\n最新版本：v{latest}\n\n是否開啟下載頁面？",
+        "update_dialog_failed": "無法完成更新檢查。\n\n{error}",
+        "update_dialog_latest": "目前已是最新版本。\n\n目前版本：v{current}\n最新版本：v{latest}",
+        "update_dialog_title": "檢查更新",
+    }
+)
+
+TEXT["en"].update(
+    {
+        "btn_check_updates": "Check for updates",
+        "current_version": "Version v{version}",
+        "footer_separator": "  |  ",
+        "log_open_current_release": "Opening current release: {url}",
+        "update_already_running": "An update check is already running.",
+        "update_check_available": "Update available: v{current} -> v{latest}",
+        "update_check_failed": "Update check failed: {error}",
+        "update_check_latest": "You are using the latest version: v{version}",
+        "update_check_start_auto": "Checking for updates automatically.",
+        "update_check_start_manual": "Checking for updates.",
+        "update_dialog_available": "A new version is available on GitHub Releases.\n\nCurrent version: v{current}\nLatest version: v{latest}\n\nOpen the download page?",
+        "update_dialog_failed": "The update check could not be completed.\n\n{error}",
+        "update_dialog_latest": "You are using the latest version.\n\nCurrent version: v{current}\nLatest version: v{latest}",
+        "update_dialog_title": "Check for updates",
+    }
+)
 
 
 def normalize_language(language: str | None) -> str:
@@ -1759,6 +1800,7 @@ class DownloaderApp:
         self.active_worker_count = 1
         self.album_data: AlbumData | None = None
         self.preview_photo = None
+        self.update_check_in_progress = False
 
         self.language_var = tk.StringVar(value=language_label(self.language_code))
         self.album_url_var = tk.StringVar(value="")
@@ -1780,6 +1822,7 @@ class DownloaderApp:
 
         self._build_ui()
         self.root.after(100, self._poll_events)
+        self.root.after(800, lambda: self._start_update_check(manual=False))
 
     def _t(self, key: str, **kwargs) -> str:
         return tr(key, self.language_code, **kwargs)
@@ -1893,6 +1936,34 @@ class DownloaderApp:
         scroll.grid(row=0, column=1, sticky="ns")
         self.log_text.configure(yscrollcommand=scroll.set)
 
+        ttk.Style(self.root).configure("Link.TLabel", foreground="#0563c1")
+        footer = ttk.Frame(main)
+        footer.pack(fill="x", padx=14, pady=(0, 10))
+        footer.columnconfigure(0, weight=1)
+        footer_info = ttk.Frame(footer)
+        footer_info.grid(row=0, column=1, sticky="e")
+
+        self.footer_app_name_label = ttk.Label(footer_info, text=APP_NAME)
+        self.footer_app_name_label.pack(side="left")
+        ttk.Label(footer_info, text=self._t("footer_separator")).pack(side="left")
+        self.current_version_link = ttk.Label(
+            footer_info,
+            text=self._t("current_version", version=APP_VERSION),
+            style="Link.TLabel",
+            cursor="hand2",
+        )
+        self.current_version_link.pack(side="left")
+        self.current_version_link.bind("<Button-1>", self._open_current_release)
+        ttk.Label(footer_info, text=self._t("footer_separator")).pack(side="left")
+        self.check_updates_link = ttk.Label(
+            footer_info,
+            text=self._t("btn_check_updates"),
+            style="Link.TLabel",
+            cursor="hand2",
+        )
+        self.check_updates_link.pack(side="left")
+        self.check_updates_link.bind("<Button-1>", lambda _event: self._start_update_check(manual=True))
+
         self._log(self._t("log_intro"))
 
     def _current_resolution_value(self) -> str:
@@ -1942,6 +2013,8 @@ class DownloaderApp:
         self.start_button.configure(text=self._t("btn_start"))
         self.pause_button.configure(text=self._t("btn_resume") if self.pause_event.is_set() else self._t("btn_pause"))
         self.stop_button.configure(text=self._t("btn_stop"))
+        self.current_version_link.configure(text=self._t("current_version", version=APP_VERSION))
+        self.check_updates_link.configure(text=self._t("btn_check_updates"))
 
         self.resolution_options = tuple(resolution_options_for_language(self.language_code))
         self.resolution_label_to_value = {label: value for value, label in self.resolution_options}
@@ -1983,6 +2056,55 @@ class DownloaderApp:
             self.cookies_var.set(filename)
             set_cookie_file(filename)
             self._log(self._t("log_cookie_set", path=filename))
+
+    def _open_current_release(self, _event=None) -> None:
+        self._log(self._t("log_open_current_release", url=APP_CURRENT_RELEASE_URL))
+        webbrowser.open(APP_CURRENT_RELEASE_URL)
+
+    def _start_update_check(self, manual: bool) -> None:
+        if self.update_check_in_progress:
+            if manual:
+                self._log(self._t("update_already_running"))
+                messagebox.showinfo(self._t("update_dialog_title"), self._t("update_already_running"))
+            return
+        self.update_check_in_progress = True
+        self.check_updates_link.configure(cursor="arrow")
+        self._log(self._t("update_check_start_manual" if manual else "update_check_start_auto"))
+        threading.Thread(target=self._update_check_worker, args=(manual,), daemon=True).start()
+
+    def _update_check_worker(self, manual: bool) -> None:
+        result = check_for_update(current_version=APP_VERSION)
+        self.events.put(("update_check_done", manual, result))
+
+    def _finish_update_check(self, manual: bool, result: UpdateCheckResult) -> None:
+        self.update_check_in_progress = False
+        self.check_updates_link.configure(cursor="hand2")
+
+        if result.error:
+            self._log(self._t("update_check_failed", error=result.error))
+            if manual:
+                messagebox.showerror(
+                    self._t("update_dialog_title"),
+                    self._t("update_dialog_failed", error=result.error),
+                )
+            return
+
+        latest_version = result.latest_version or result.current_version
+        if result.is_update_available:
+            self._log(self._t("update_check_available", current=result.current_version, latest=latest_version))
+            if messagebox.askyesno(
+                self._t("update_dialog_title"),
+                self._t("update_dialog_available", current=result.current_version, latest=latest_version),
+            ):
+                webbrowser.open(result.release_url)
+            return
+
+        self._log(self._t("update_check_latest", version=result.current_version))
+        if manual:
+            messagebox.showinfo(
+                self._t("update_dialog_title"),
+                self._t("update_dialog_latest", current=result.current_version, latest=latest_version),
+            )
 
     def _read_thread_count(self) -> int:
         try:
@@ -2180,6 +2302,9 @@ class DownloaderApp:
                 kind = event[0]
                 if kind == "log":
                     self._log(event[1])
+                elif kind == "update_check_done":
+                    _, manual, result = event
+                    self._finish_update_check(manual, result)
                 elif kind == "progress":
                     _, done, total, message = event
                     value = 0 if total == 0 else round(done / total * 100, 2)

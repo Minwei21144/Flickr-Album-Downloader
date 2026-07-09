@@ -9,8 +9,8 @@ English: [Unsigned macOS install notes](macos-unsigned-install.md)
 ## 安裝方式
 
 1. 下載對應的 macOS ZIP：
-   - Apple Silicon：`FlickrAlbumDownloader-1.0.0-macos-arm64.app.zip`
-   - Intel：`FlickrAlbumDownloader-1.0.0-macos-x64.app.zip`
+   - Apple Silicon：`FlickrAlbumDownloader-1.1.0-macos-arm64.app.zip`
+   - Intel：`FlickrAlbumDownloader-1.1.0-macos-x64.app.zip`
 2. 雙擊 ZIP，解壓出 `Flickr Album Downloader.app`。
 3. 把 `Flickr Album Downloader.app` 拖到 `/Applications`。
 4. 對 App 按右鍵，選擇 **打開 / Open**，如果 macOS 跳出確認視窗，再按 **打開 / Open**。

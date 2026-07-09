@@ -30,12 +30,28 @@ from flickr_album_downloader import (
     video_sizes_from_get_sizes,
     tr,
 )
+from update_checker import is_newer_version, result_from_release_payload, version_sort_key
 
 
 class DownloaderCoreTests(unittest.TestCase):
     def test_version_metadata_is_used(self):
         self.assertRegex(APP_VERSION, r"^\d+\.\d+\.\d+$")
         self.assertEqual(downloader.USER_AGENT, APP_USER_AGENT)
+
+    def test_release_version_comparison(self):
+        self.assertEqual(version_sort_key("v1.0.0"), (1,))
+        self.assertFalse(is_newer_version("v1.0.0", "1.0.0"))
+        self.assertTrue(is_newer_version("v1.1.0", "1.0.9"))
+        self.assertFalse(is_newer_version("bad-version", "1.0.0"))
+
+    def test_release_payload_result_marks_update(self):
+        result = result_from_release_payload(
+            {"tag_name": "v1.2.0", "html_url": "https://example.test/releases/v1.2.0"},
+            current_version="1.0.0",
+        )
+        self.assertTrue(result.is_update_available)
+        self.assertEqual(result.latest_version, "1.2.0")
+        self.assertEqual(result.release_url, "https://example.test/releases/v1.2.0")
 
     def test_parse_album_url_with_alias(self):
         parsed = parse_album_url("https://www.flickr.com/photos/example-user/albums/72177720300000000/")
